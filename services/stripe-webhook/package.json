@@ -1,0 +1,15 @@
+{
+  "name": "flightdeck-stripe-webhook",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Stripe subscription webhook handler for Flightdeck Local Visibility (Cloudflare Worker).",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy:sandbox": "wrangler deploy --env sandbox",
+    "deploy:live": "wrangler deploy --env live",
+    "test": "node --test test/"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

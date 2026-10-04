@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.npm/
+
+# Environment / secrets -- never commit these, in any service directory
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.dev.vars
+.dev.vars.*
+
+# Cloudflare Wrangler local state
+.wrangler/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build output
+dist/
+build/
