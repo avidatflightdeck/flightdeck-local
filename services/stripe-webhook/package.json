@@ -7,7 +7,7 @@
     "dev": "wrangler dev",
     "deploy:sandbox": "wrangler deploy --env sandbox",
     "deploy:live": "wrangler deploy --env live",
-    "test": "node --test test/"
+    "test": "node --test test/*.test.js"
   },
   "devDependencies": {
     "wrangler": "^4.147.0"
