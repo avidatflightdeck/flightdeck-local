@@ -196,7 +196,13 @@ enrollment/dispute alerts until this step is done.
 - Log lines never include the signature header, either secret, or card
   data — only event ID, event type, customer ID, subscription ID,
   checkout session/invoice ID, plan key, status, and a timestamp.
-- Sandbox and live each have their own KV namespace and their own secret
+- Sandbox and live each have their own D1 database and their own secret
   values, set independently via `wrangler secret put --env <sandbox|live>`.
 - All credentials are environment bindings (Worker secrets), never literals
   in source, `wrangler.toml`, or logs.
+- Each environment also sets a plain (non-secret) `APP_ENV` var ("sandbox"
+  or "live"). Every inbound event's `livemode` flag is checked against it;
+  a mismatch (a live Stripe event reaching the sandbox Worker, or a test
+  event reaching the live Worker) is acknowledged with 200 but never
+  recorded or processed. If `APP_ENV` is ever unset, the Worker fails safe
+  and rejects with 500 rather than guessing which environment it's in.

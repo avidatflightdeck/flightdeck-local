@@ -16,6 +16,7 @@ function fakeEnv(overrides = {}) {
   return {
     STRIPE_WEBHOOK_SECRET: TEST_SECRET,
     STRIPE_MODE: "sandbox",
+    APP_ENV: "sandbox",
     DB: fakeD1(),
     // No ACK_EMAIL_API_KEY / NOTIFY_WEBHOOK_URL by default -- exercises
     // the "not configured yet" logging branches without real network calls.
@@ -242,4 +243,48 @@ test("scheduled() retries a pending/retry delivery and marks it sent on success"
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("GET /health reports the configured appEnv", async () => {
+  const env = fakeEnv();
+  const res = await worker.fetch(new Request("https://worker.example/health"), env, {});
+  const body = await res.json();
+  assert.equal(body.appEnv, "sandbox");
+});
+
+test("a live event (livemode:true) delivered to a sandbox-configured Worker is rejected as a safe no-op", async () => {
+  const env = fakeEnv({ APP_ENV: "sandbox" });
+  const event = checkoutCompletedEvent("evt_live_on_sandbox");
+  event.livemode = true;
+  const res = await postWebhook(env, event);
+  assert.equal(res.status, 200);
+  const text = await res.text();
+  assert.match(text, /mismatch/i);
+  assert.equal(env.DB._stripeEvents.size, 0, "a mismatched event must never be recorded or processed");
+});
+
+test("a sandbox/test event (livemode:false) delivered to a live-configured Worker is rejected as a safe no-op", async () => {
+  const env = fakeEnv({ APP_ENV: "live" });
+  const event = checkoutCompletedEvent("evt_sandbox_on_live"); // livemode: false by default
+  const res = await postWebhook(env, event);
+  assert.equal(res.status, 200);
+  const text = await res.text();
+  assert.match(text, /mismatch/i);
+  assert.equal(env.DB._stripeEvents.size, 0);
+});
+
+test("a matching live event on a live-configured Worker is processed normally", async () => {
+  const env = fakeEnv({ APP_ENV: "live" });
+  const event = checkoutCompletedEvent("evt_live_on_live");
+  event.livemode = true;
+  const res = await postWebhook(env, event);
+  assert.equal(res.status, 200);
+  assert.ok(env.DB._stripeEvents.has("evt_live_on_live"));
+});
+
+test("a missing APP_ENV fails safe (rejects) rather than guessing", async () => {
+  const env = fakeEnv({ APP_ENV: undefined });
+  const res = await postWebhook(env, checkoutCompletedEvent("evt_no_app_env"));
+  assert.equal(res.status, 500);
+  assert.equal(env.DB._stripeEvents.size, 0);
 });

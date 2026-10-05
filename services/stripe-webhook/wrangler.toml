@@ -23,7 +23,7 @@ name = "flightdeck-stripe-webhook-sandbox"
 d1_databases = [
   { binding = "DB", database_name = "flightdeck-stripe-webhook-sandbox", database_id = "3a2a1c7c-d83c-4f9c-bbcc-d7e59f96e71f" }
 ]
-vars = { STRIPE_MODE = "sandbox" }
+vars = { STRIPE_MODE = "sandbox", APP_ENV = "sandbox" }
 
 [[env.sandbox.triggers]]
 crons = ["*/5 * * * *"]
@@ -36,7 +36,7 @@ name = "flightdeck-stripe-webhook-live"
 d1_databases = [
   { binding = "DB", database_name = "flightdeck-stripe-webhook-live", database_id = "82fe9d5b-7f0e-4d97-8ae6-2be9fc4d73a5" }
 ]
-vars = { STRIPE_MODE = "live" }
+vars = { STRIPE_MODE = "live", APP_ENV = "live" }
 
 # Live Cron Trigger intentionally omitted here until live deployment is
 # authorized; add the same `[[env.live.triggers]] crons = [...]` block at

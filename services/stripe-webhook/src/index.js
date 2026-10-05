@@ -26,7 +26,7 @@ export default {
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/health") {
-      return json({ service: "flightdeck-stripe-webhook", environment: env.STRIPE_MODE, ready: true });
+      return json({ service: "flightdeck-stripe-webhook", environment: env.STRIPE_MODE, appEnv: env.APP_ENV || null, ready: true });
     }
 
     if (request.method !== "POST") {
@@ -54,6 +54,23 @@ export default {
 
     const nowEpoch = Math.floor(Date.now() / 1000);
     const livemode = event.livemode ? 1 : 0;
+
+    // --- Environment guard: never let a live event be processed by the
+    // sandbox deployment, or a test event by the live deployment. APP_ENV
+    // is set per-environment in wrangler.toml and must never be absent in
+    // a real deployment; if it is, fail safe (reject) rather than guess.
+    const expectedLivemode = env.APP_ENV === "live" ? 1 : env.APP_ENV === "sandbox" ? 0 : null;
+    if (expectedLivemode === null) {
+      console.log(JSON.stringify({ level: "error", msg: "app_env_not_configured", eventId: event.id }));
+      return new Response("Environment not configured", { status: 500 });
+    }
+    if (livemode !== expectedLivemode) {
+      console.log(JSON.stringify({ level: "warn", msg: "livemode_mismatch_rejected", eventId: event.id, eventType: event.type, appEnv: env.APP_ENV, eventLivemode: !!event.livemode }));
+      // Safely no-op: acknowledge receipt (it's a validly signed Stripe
+      // event, just not meant for this environment) without recording or
+      // processing it here.
+      return new Response("OK (livemode mismatch, ignored)", { status: 200 });
+    }
 
     // --- Atomic event-level dedup: PRIMARY KEY on stripe_events.event_id ---
     // A duplicate delivery of the same Stripe event hits a PK violation on
